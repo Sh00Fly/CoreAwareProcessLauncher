@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+#****************** My own start ******************
+# Project management files
+TODO.md
+DEVELOPMENT.md
+#******************* My own end *******************
+
 # User-specific files
 *.rsuser
 *.suo

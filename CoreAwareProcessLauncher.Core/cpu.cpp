@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "cpu.h"
 #include "logger.h"
 #include <intrin.h>

@@ -2,29 +2,29 @@
 #include "logger.h"
 #include <iostream>
 
-std::unique_ptr<Logger> g_logger;
+std::unique_ptr<ApplicationLogger> g_logger;
 
-Logger::Logger(bool enabled, const std::wstring& logPath) 
+ApplicationLogger::ApplicationLogger(bool enabled, const std::wstring& logPath) 
     : m_enabled(enabled), m_logPath(logPath) {
     if (m_enabled && !logPath.empty()) {
         m_logFile.open(logPath, std::ios::out | std::ios::app);
     }
 }
 
-Logger::~Logger() {
+ApplicationLogger::~ApplicationLogger() {
     if (m_logFile.is_open()) {
         m_logFile.close();
     }
 }
 
-void Logger::Log(Level level, const std::string& message) {
+void ApplicationLogger::Log(Level level, const std::string& message) {
     if (!m_enabled) return;
 
     std::string levelStr;
     switch (level) {
         case Level::INFO:    levelStr = "INFO"; break;
         case Level::WARNING: levelStr = "WARNING"; break;
-        case Level::ERR:   levelStr = "ERROR"; break;
+        case Level::ERR:     levelStr = "ERROR"; break;
         case Level::DEBUG:   levelStr = "DEBUG"; break;
     }
 

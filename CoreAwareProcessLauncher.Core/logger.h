@@ -4,7 +4,7 @@
 #include <memory>
 #include <ctime>
 
-class Logger {
+class ApplicationLogger  {
 public:
     enum class Level {
         INFO,
@@ -13,8 +13,8 @@ public:
         DEBUG
     };
 
-    Logger(bool enabled = false, const std::wstring& logPath = L"");  // Constructor
-    ~Logger();  // Destructor
+    ApplicationLogger (bool enabled = false, const std::wstring& logPath = L"");  // Constructor
+    ~ApplicationLogger ();  // Destructor
 
     void Log(Level level, const std::string& message);
 
@@ -25,4 +25,4 @@ private:
 };
 
 // Global logger instance
-extern std::unique_ptr<class Logger> g_logger;
+extern std::unique_ptr<ApplicationLogger> g_logger;

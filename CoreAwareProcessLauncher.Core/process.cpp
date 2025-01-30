@@ -10,7 +10,7 @@ bool ProcessManager::LaunchProcess(
     STARTUPINFOW si = { sizeof(STARTUPINFOW) };
     PROCESS_INFORMATION pi;
     
-    g_logger->Log(Logger::Level::INFO, 
+    g_logger->Log(ApplicationLogger::Level::INFO, 
         "Launching process with affinity mask: 0x" + 
         std::format("{:X}", affinityMask));
     
@@ -47,7 +47,7 @@ bool ProcessManager::LaunchProcess(
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
     
-    g_logger->Log(Logger::Level::INFO, "Process launched successfully");
+    g_logger->Log(ApplicationLogger::Level::INFO, "Process launched successfully");
     return true;
 }
 
@@ -68,5 +68,5 @@ void ProcessManager::LogWin32Error(const std::string& context) {
     std::string errorMsg = context + ": " + (char*)msgBuf;
     LocalFree(msgBuf);
     
-    g_logger->Log(Logger::Level::ERR, errorMsg);
+    g_logger->Log(ApplicationLogger::Level::ERR, errorMsg);
 }

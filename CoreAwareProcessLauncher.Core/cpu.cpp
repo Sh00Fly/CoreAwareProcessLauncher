@@ -12,7 +12,7 @@ DWORD_PTR CpuInfo::GetCoreMask(uint32_t cpuidValue) {
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo);
     
-    g_logger->Log(Logger::Level::INFO, 
+    g_logger->Log(ApplicationLogger::Level::INFO, 
         "Detecting cores with CPUID value: 0x" + std::format("{:02X}", cpuidValue));
         //"Detecting cores with CPUID value: 0x" + std::format("{:02X}"_fmt, cpuidValue)
     for (DWORD i = 0; i < sysInfo.dwNumberOfProcessors; i++) {
@@ -23,7 +23,7 @@ DWORD_PTR CpuInfo::GetCoreMask(uint32_t cpuidValue) {
         ExecuteCpuid(cpuInfo, 0x1A, 0);
         if (((cpuInfo[0] >> 24) & 0xFF) == cpuidValue) {
             mask |= threadMask;
-            g_logger->Log(Logger::Level::DEBUG, 
+            g_logger->Log(ApplicationLogger::Level::DEBUG, 
                 "Core " + std::to_string(i) + " matches type");
         }
     }
@@ -32,7 +32,7 @@ DWORD_PTR CpuInfo::GetCoreMask(uint32_t cpuidValue) {
     SetThreadAffinityMask(GetCurrentThread(), 
         (1ULL << sysInfo.dwNumberOfProcessors) - 1);
     
-    g_logger->Log(Logger::Level::INFO, 
+    g_logger->Log(ApplicationLogger::Level::INFO, 
         "Detected core mask: 0x" + std::format("{:X}", mask));
     
     return mask;

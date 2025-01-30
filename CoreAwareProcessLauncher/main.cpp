@@ -1,3 +1,4 @@
+//main.cpp
 #include "options.h"
 #include "logger.h"
 #include "cpu.h"
@@ -5,20 +6,31 @@
 #include <iostream>
 #include <format>
 
-int main(int argc, wchar_t* argv[]) {
+int wmain(int argc, wchar_t* argv[]) {
     try {
-        g_logger = std::make_unique<Logger>(true, L"capl.log");
-        g_logger->Log(Logger::Level::INFO, "CAPL starting...");
+        g_logger = std::make_unique<ApplicationLogger>(true, L"capl.log");
+        g_logger->Log(ApplicationLogger::Level::INFO, "CAPL starting...");
 
-        CommandLineOptions options = ParseCommandLine(argc, argv);
+        // Get command line directly from Windows
+        int cmdArgc;
+        LPWSTR* cmdArgv = CommandLineToArgvW(GetCommandLineW(), &cmdArgc);
         
+        if (cmdArgv == nullptr) {
+            throw std::runtime_error("Failed to parse command line");
+        }
+
+        CommandLineOptions options = ParseCommandLine(cmdArgc, cmdArgv);
+        
+        // Free the command line arguments
+        LocalFree(cmdArgv);        
+
         if (options.showHelp) {
             ShowHelp();
             return 0;
         }
 
         if (options.queryMode) {
-            g_logger->Log(Logger::Level::INFO, "Running in query mode");
+            g_logger->Log(ApplicationLogger::Level::INFO, "Running in query mode");
             std::wcout << CpuInfo::QuerySystemInfo();
             return 0;
         }
@@ -46,7 +58,7 @@ int main(int argc, wchar_t* argv[]) {
             GetSystemInfo(&sysInfo);
             DWORD_PTR fullMask = (1ULL << sysInfo.dwNumberOfProcessors) - 1;
             coreMask = fullMask & ~coreMask;
-            g_logger->Log(Logger::Level::INFO, 
+            g_logger->Log(ApplicationLogger::Level::INFO, 
                 "Inverted core mask: 0x" + std::format("{:X}", coreMask));
         }
 
@@ -63,7 +75,7 @@ int main(int argc, wchar_t* argv[]) {
     }
     catch (const std::exception& e) {
         if (g_logger) {
-            g_logger->Log(Logger::Level::ERR, 
+            g_logger->Log(ApplicationLogger::Level::ERR, 
                 "Fatal error: " + std::string(e.what()));
         }
         std::cerr << "Error: " << e.what() << std::endl;

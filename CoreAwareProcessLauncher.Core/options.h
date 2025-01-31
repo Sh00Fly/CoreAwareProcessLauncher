@@ -15,7 +15,7 @@ struct CommandLineOptions {
         DIRECT
     } selectionMethod = SelectionMethod::NONE;
     
-    std::string detectMode;    // "P", "E", "CUSTOM"
+    std::wstring detectMode;    // "P", "E", "CUSTOM"
     uint32_t cpuidValue;       // For custom detection
     std::vector<int> cores;    // List of core numbers
     

@@ -158,7 +158,7 @@ namespace CoreAwareProcessLauncherTests
 				Assert::AreEqual(L"TestExecutable.exe", options.targetPath.c_str());  // Updated assertion
 				Assert::AreEqual(static_cast<int>(CommandLineOptions::SelectionMethod::DETECT),
 					static_cast<int>(options.selectionMethod));
-				Assert::AreEqual(std::string("P"), options.detectMode);
+				Assert::AreEqual(L"P", options.detectMode.c_str());
 			}
 			catch (const std::exception& e) {
 				Logger::WriteMessage(L"Exception caught: ");
@@ -204,7 +204,7 @@ namespace CoreAwareProcessLauncherTests
 			auto options = ParseCommandLine(argc, argv);
 
 			Assert::AreEqual(L"TestExecutable.exe", options.targetPath.c_str());
-			Assert::AreEqual(std::string("CUSTOM"), options.detectMode);
+			Assert::AreEqual(L"CUSTOM", options.detectMode.c_str());
 			Assert::AreEqual(uint32_t(0x40), options.cpuidValue);
 			CleanupArgs(argv);
 		}
@@ -269,7 +269,7 @@ namespace CoreAwareProcessLauncherTests
 			auto options = ParseCommandLine(argc, argv);
 
 			Assert::IsTrue(options.invertSelection);
-			Assert::AreEqual(std::string("P"), options.detectMode);
+			Assert::AreEqual(L"P", options.detectMode.c_str());
 			CleanupArgs(argv);
 		}
 
@@ -360,7 +360,7 @@ namespace CoreAwareProcessLauncherTests
 			Assert::AreEqual(L"TestExecutable.exe", options.targetPath.c_str());
 			Assert::AreEqual(static_cast<int>(CommandLineOptions::SelectionMethod::DETECT),
 				static_cast<int>(options.selectionMethod));
-			Assert::AreEqual(std::string("CUSTOM"), options.detectMode);
+			Assert::AreEqual(L"CUSTOM", options.detectMode.c_str());
 			Assert::AreEqual(uint32_t(0x40), options.cpuidValue);
 			Assert::IsTrue(options.invertSelection);
 			Assert::IsTrue(options.enableLogging);

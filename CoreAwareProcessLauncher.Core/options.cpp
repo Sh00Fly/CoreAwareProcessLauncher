@@ -68,12 +68,11 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 		}
 		else if ((arg == L"--detect" || arg == L"-d") && i + 1 < argc) {
 			options.selectionMethod = CommandLineOptions::SelectionMethod::DETECT;
-			std::wstring mode = argv[++i];
-			options.detectMode = WideToUtf8(mode);
+		    options.detectMode = argv[++i]; 
 
-			if (options.detectMode != "P" &&
-				options.detectMode != "E" &&
-				options.detectMode != "CUSTOM") {
+			if (options.detectMode != L"P" &&
+				options.detectMode != L"E" &&
+				options.detectMode != L"CUSTOM") {
 				throw std::runtime_error("Invalid detection mode. Use P, E, or CUSTOM");
 			}
 		}
@@ -183,7 +182,7 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 		}
 
 		// CPUID validation
-		if (options.detectMode == "CUSTOM") {
+		if (options.detectMode == L"CUSTOM") {
 			if (options.cpuidValue == 0) {
 				throw std::runtime_error("CPUID value is required for CUSTOM detection mode");
 			}
@@ -229,8 +228,8 @@ void ShowHelp() {
 		<< L"  --target, -t <path>    Target executable path\n\n"
 		<< L"Utility Options:\n"
 		<< L"  --query, -q            Show system information only\n"
-		<< L"  --log, -l              Enable logging\n"
-		<< L"  --logpath <path>       Specify log file path\n"
+		<< L"  --log, -l              Enable logging (disabled by default)\n"
+		<< L"  --logpath <path>       Specify log file path (default: capl.log)\n"
 		<< L"  --help, -h, -?, /?     Show this help\n\n"
 		<< L"Examples:\n"
 		<< L"  capl.exe --target \"program.exe\" --detect P\n"

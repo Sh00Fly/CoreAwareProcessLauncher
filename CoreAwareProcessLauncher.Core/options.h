@@ -9,16 +9,18 @@
 struct CommandLineOptions {
     std::wstring targetPath;
     
-    enum class SelectionMethod {
-        NONE,
-        DETECT,
-        DIRECT
-    } selectionMethod = SelectionMethod::NONE;
+    enum class CoreAffinityMode {
+        P_CORES_ONLY,     // Only Performance cores
+        E_CORES_ONLY,     // Only regular E-cores
+        LP_CORES_ONLY,    // Only LP E-cores
+        ALL_E_CORES,      // Both E-cores and LP E-cores
+        ALL_CORES,        // Lock to all cores
+        CUSTOM,          // Custom core selection via --cores
+        PATTERN          // Custom CPUID pattern detection
+    } affinityMode = CoreAffinityMode::CUSTOM;
     
-    std::wstring detectMode;    // "P", "E", "CUSTOM"
-    uint32_t cpuidValue;       // For custom detection
-    std::vector<int> cores;    // List of core numbers
-    
+    std::vector<int> cores;    // Used when mode is CUSTOM
+    uint32_t pattern;          // Used when mode is PATTERN
     bool invertSelection;
     bool queryMode;
     bool enableLogging;

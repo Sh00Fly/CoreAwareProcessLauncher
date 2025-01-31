@@ -7,101 +7,128 @@
 #include <format>
 
 int wmain(int argc, wchar_t* argv[]) {
-	try {
-		g_logger = std::make_unique<ApplicationLogger>(false);
-		//g_logger = std::make_unique<ApplicationLogger>(true, L"capl.log");
-		//g_logger->Log(ApplicationLogger::Level::INFO, "CAPL starting...");
+    try {
+        g_logger = std::make_unique<ApplicationLogger>(false);
 
-		// Get command line directly from Windows
-		int cmdArgc;
-		LPWSTR* cmdArgv = CommandLineToArgvW(GetCommandLineW(), &cmdArgc);
+        // Get command line directly from Windows
+        int cmdArgc;
+        LPWSTR* cmdArgv = CommandLineToArgvW(GetCommandLineW(), &cmdArgc);
 
-		if (cmdArgv == nullptr) {
-			throw std::runtime_error("Failed to parse command line");
-		}
+        if (cmdArgv == nullptr) {
+            throw std::runtime_error("Failed to parse command line");
+        }
 
-		CommandLineOptions options = ParseCommandLine(cmdArgc, cmdArgv);
+        CommandLineOptions options = ParseCommandLine(cmdArgc, cmdArgv);
 
-		// Free the command line arguments
-		LocalFree(cmdArgv);
+        // Free the command line arguments
+        LocalFree(cmdArgv);
 
-		if (options.enableLogging) {
-			g_logger = std::make_unique<ApplicationLogger>(true,
-				options.logPath.empty() ? L"capl.log" : options.logPath);
-			g_logger->Log(ApplicationLogger::Level::INFO, "CAPL starting...");
-		}
+        if (options.enableLogging) {
+            g_logger = std::make_unique<ApplicationLogger>(true,
+                options.logPath.empty() ? L"capl.log" : options.logPath);
+            g_logger->Log(ApplicationLogger::Level::INFO, "CAPL starting...");
+        }
 
-		if (options.showHelp) {
-			ShowHelp();
-			return 0;
-		}
+        if (options.showHelp) {
+            ShowHelp();
+            return 0;
+        }
 
-		if (options.queryMode) {
-			g_logger->Log(ApplicationLogger::Level::INFO, "Running in query mode");
-			std::wcout << CpuInfo::QuerySystemInfo();
-			return 0;
-		}
+        if (options.queryMode) {
+            g_logger->Log(ApplicationLogger::Level::INFO, "Running in query mode");
+            std::wcout << CpuInfo::QuerySystemInfo();
+            return 0;
+        }
 
-		// Get appropriate core mask based on selection method
-		DWORD_PTR coreMask = 0;
-		if (options.selectionMethod == CommandLineOptions::SelectionMethod::DETECT) {
-			auto caps = CpuInfo::GetCapabilities();
-			if (!caps.isHybrid) {
-				throw std::runtime_error("This CPU does not support hybrid architecture. "
-					"Please use --cores option instead.");
-			}
-			if (!caps.supportsLeaf1A) {
-				throw std::runtime_error("This CPU does not support core type detection. "
-					"Please use --cores option instead.");
-			}
-			if (options.detectMode == L"P") {
-				coreMask = CpuInfo::GetPCoreMask();
-			}
-			else if (options.detectMode == L"E") {
-				coreMask = CpuInfo::GetECoreMask();
-			}
-			else if (options.detectMode == L"CUSTOM") {
-				coreMask = CpuInfo::GetCoreMask(options.cpuidValue);
-			}
-		}
-		else if (options.selectionMethod == CommandLineOptions::SelectionMethod::DIRECT) {
-			coreMask = CpuInfo::CoreListToMask(options.cores);
-		}
+        // Get appropriate core mask based on affinity mode
+        DWORD_PTR coreMask = 0;
+        auto caps = CpuInfo::GetCapabilities();
 
-		// Apply inversion if requested
-		if (options.invertSelection) {
-			SYSTEM_INFO sysInfo;
-			GetSystemInfo(&sysInfo);
-			DWORD_PTR fullMask = (1ULL << sysInfo.dwNumberOfProcessors) - 1;
-			coreMask = fullMask & ~coreMask;
-			g_logger->Log(ApplicationLogger::Level::INFO,
-				"Inverted core mask: 0x" + std::format("{:X}", coreMask));
-		}
+        switch (options.affinityMode) {
+            case CommandLineOptions::CoreAffinityMode::P_CORES_ONLY:
+                if (!caps.isHybrid || !caps.supportsLeaf1A) {
+                    throw std::runtime_error("This CPU does not support hybrid architecture");
+                }
+                coreMask = CpuInfo::GetPCoreMask();
+                break;
 
-		// Validate final mask
-		if (coreMask == 0) {
-			throw std::runtime_error("Resulting core mask is empty");
-		}
+            case CommandLineOptions::CoreAffinityMode::E_CORES_ONLY:
+                if (!caps.isHybrid || !caps.supportsLeaf1A) {
+                    throw std::runtime_error("This CPU does not support hybrid architecture");
+                }
+                coreMask = CpuInfo::GetECoreMask();
+                break;
 
-		// Launch the process
-		if (!ProcessManager::LaunchProcess(options.targetPath, coreMask)) {
-			throw std::runtime_error("Failed to launch process");
-		}
+            case CommandLineOptions::CoreAffinityMode::LP_CORES_ONLY:
+                if (!caps.isHybrid || !caps.supportsLeaf1A) {
+                    throw std::runtime_error("This CPU does not support hybrid architecture");
+                }
+                coreMask = CpuInfo::GetLpECoreMask();
+                break;
 
-	}
-	catch (const std::exception& e) {
-		if (g_logger) {
-			g_logger->Log(ApplicationLogger::Level::ERR,
-				"Fatal error: " + std::string(e.what()));
-		}
-		std::cerr << "Error: " << e.what() << std::endl;
-		std::wcout << L"\nUse --help for usage information." << std::endl;
-		return 1;
-	}
+            case CommandLineOptions::CoreAffinityMode::ALL_E_CORES:
+                if (!caps.isHybrid || !caps.supportsLeaf1A) {
+                    throw std::runtime_error("This CPU does not support hybrid architecture");
+                }
+                coreMask = CpuInfo::GetECoreMask() | CpuInfo::GetLpECoreMask();
+                break;
 
-	return 0;
+            case CommandLineOptions::CoreAffinityMode::ALL_CORES:
+                {
+                    SYSTEM_INFO sysInfo;
+                    GetSystemInfo(&sysInfo);
+                    coreMask = (1ULL << sysInfo.dwNumberOfProcessors) - 1;
+                }
+                break;
+
+            case CommandLineOptions::CoreAffinityMode::CUSTOM:
+                coreMask = CpuInfo::CoreListToMask(options.cores);
+                break;
+
+            case CommandLineOptions::CoreAffinityMode::PATTERN:
+                if (!caps.supportsLeaf1A) {
+                    throw std::runtime_error("This CPU does not support core type detection");
+                }
+                coreMask = CpuInfo::GetCoreMask(options.pattern);
+                break;
+
+            default:
+                throw std::runtime_error("Invalid affinity mode");
+        }
+
+        // Apply inversion if requested
+        if (options.invertSelection) {
+            SYSTEM_INFO sysInfo;
+            GetSystemInfo(&sysInfo);
+            DWORD_PTR fullMask = (1ULL << sysInfo.dwNumberOfProcessors) - 1;
+            coreMask = fullMask & ~coreMask;
+            g_logger->Log(ApplicationLogger::Level::INFO,
+                "Inverted core mask: 0x" + std::format("{:X}", coreMask));
+        }
+
+        // Validate final mask
+        if (coreMask == 0) {
+            throw std::runtime_error("Resulting core mask is empty");
+        }
+
+        // Launch the process
+        if (!ProcessManager::LaunchProcess(options.targetPath, coreMask)) {
+            throw std::runtime_error("Failed to launch process");
+        }
+
+    }
+    catch (const std::exception& e) {
+        if (g_logger) {
+            g_logger->Log(ApplicationLogger::Level::ERR,
+                "Fatal error: " + std::string(e.what()));
+        }
+        std::cerr << "Error: " << e.what() << std::endl;
+        std::wcout << L"\nUse --help for usage information." << std::endl;
+        return 1;
+    }
+
+    return 0;
 }
-
 //#include <windows.h>
 //#include <iostream>
 //#include <string>

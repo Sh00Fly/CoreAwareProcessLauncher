@@ -7,13 +7,13 @@
 #include <format>
 
 CpuInfo::CpuCapabilities CpuInfo::GetCapabilities() {
-    CpuCapabilities caps = {};
+    CpuCapabilities caps = {};  // Initialize all members to 0/false/empty
     int cpuInfo[4] = {0};
 
     // Get processor brand string
     ExecuteCpuid(cpuInfo, 0x80000000, 0);
     if (cpuInfo[0] >= 0x80000004) {
-        char brand[0x40] = {};
+        char brand[0x40] = {};  // Initialize array to zeros
         ExecuteCpuid(cpuInfo, 0x80000002, 0);
         memcpy(brand, cpuInfo, sizeof(cpuInfo));
         ExecuteCpuid(cpuInfo, 0x80000003, 0);
@@ -31,11 +31,12 @@ CpuInfo::CpuCapabilities CpuInfo::GetCapabilities() {
     GetSystemInfo(&sysInfo);
     caps.totalCores = sysInfo.dwNumberOfProcessors;
 
-    // Use the same logic as GetCoreMask to detect hybrid architecture
+    // Detect core types if leaf 0x1A is supported
     if (caps.supportsLeaf1A) {
-        // Try to detect any P-cores
-        DWORD_PTR pCoreMask = GetPCoreMask();
-        caps.isHybrid = (pCoreMask != 0);
+        caps.pCoreMask = GetPCoreMask();
+        caps.eCoreMask = GetECoreMask();
+        caps.lpECoreMask = GetLpECoreMask();
+        caps.isHybrid = (caps.pCoreMask != 0);
     }
 
     return caps;
@@ -54,8 +55,9 @@ std::wstring CpuInfo::GetDetailedInfo() {
     if (caps.isHybrid) {
         ss << L"P-core mask: 0x" << std::hex << caps.pCoreMask << L"\n"
            << L"E-core mask: 0x" << caps.eCoreMask << L"\n"
-           << L"P-cores: ";
-        
+           << L"LP E-core mask: 0x" << caps.lpECoreMask << L"\n"  // Add this line
+           << L"P-cores: ";        
+
         for (int i = 0; i < caps.totalCores; i++) {
             if (caps.pCoreMask & (1ULL << i)) {
                 ss << std::dec << i << L" ";
@@ -65,6 +67,13 @@ std::wstring CpuInfo::GetDetailedInfo() {
         ss << L"\nE-cores: ";
         for (int i = 0; i < caps.totalCores; i++) {
             if (caps.eCoreMask & (1ULL << i)) {
+                ss << std::dec << i << L" ";
+            }
+        }
+
+        ss << L"\nLP E-cores: ";
+        for (int i = 0; i < caps.totalCores; i++) {
+            if (caps.lpECoreMask & (1ULL << i)) {
                 ss << std::dec << i << L" ";
             }
         }
@@ -146,6 +155,7 @@ std::wstring CpuInfo::QuerySystemInfo() {
     if (caps.isHybrid) {
         DWORD_PTR pCoreMask = GetPCoreMask();
         DWORD_PTR eCoreMask = GetECoreMask();
+        DWORD_PTR lpECoreMask = GetLpECoreMask();
         
         ss << L"\nPerformance Cores:\n"
            << L"Mask: 0x" << std::hex << pCoreMask << L"\n"
@@ -166,6 +176,17 @@ std::wstring CpuInfo::QuerySystemInfo() {
             }
         }
         ss << L"\n";
+
+        ss << L"\nLow Power Efficiency Cores:\n"
+           << L"Mask: 0x" << std::hex << lpECoreMask << L"\n"
+           << L"Threads: ";
+        for (DWORD i = 0; i < sysInfo.dwNumberOfProcessors; i++) {
+            if (lpECoreMask & (1ULL << i)) {
+                ss << std::dec << i << L" ";
+            }
+        }
+        ss << L"\n";
+
     } else {
         // Non-hybrid CPU output
         DWORD_PTR allCoresMask = (1ULL << sysInfo.dwNumberOfProcessors) - 1;

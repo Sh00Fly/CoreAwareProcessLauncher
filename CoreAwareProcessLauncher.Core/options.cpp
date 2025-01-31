@@ -8,237 +8,248 @@
 
 // Helper function to convert wide string to narrow string
 std::string WideToUtf8(const std::wstring& wide) {
-	if (wide.empty()) return std::string();
+    if (wide.empty()) return std::string();
 
-	int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
-		static_cast<int>(wide.length()), nullptr, 0, nullptr, nullptr);
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
+        static_cast<int>(wide.length()), nullptr, 0, nullptr, nullptr);
 
-	std::string utf8(size_needed, 0);
-	WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
-		static_cast<int>(wide.length()),
-		&utf8[0], size_needed, nullptr, nullptr);
+    std::string utf8(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
+        static_cast<int>(wide.length()),
+        &utf8[0], size_needed, nullptr, nullptr);
 
-	return utf8;
+    return utf8;
 }
+
 CommandLineOptions::CommandLineOptions() :
-	cpuidValue(0),
-	invertSelection(false),
-	queryMode(false),
-	enableLogging(false),
-	showHelp(false) {
+    pattern(0),
+    invertSelection(false),
+    queryMode(false),
+    enableLogging(false),
+    showHelp(false) {
 }
 
 CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
-	CommandLineOptions options;
+    CommandLineOptions options;
 
-	g_logger->Log(ApplicationLogger::Level::INFO, "Starting command line parsing with " + std::to_string(argc) + " arguments");
+    g_logger->Log(ApplicationLogger::Level::INFO, "Starting command line parsing with " + std::to_string(argc) + " arguments");
 
-	if (argc == 1) {
-		options.showHelp = true;
-		return options;
-	}
+    if (argc == 1) {
+        options.showHelp = true;
+        return options;
+    }
 
-	// Print the raw command line
-	g_logger->Log(ApplicationLogger::Level::DEBUG, "Raw command line: " + WideToUtf8(GetCommandLineW()));
-	for (int i = 0; i < argc; i++) {  // Start from 0 to see program name too
-		std::wstring arg = argv[i];
-		g_logger->Log(ApplicationLogger::Level::DEBUG,
-			"Arg[" + std::to_string(i) + "] length: " +
-			std::to_string(arg.length()));
-		g_logger->Log(ApplicationLogger::Level::DEBUG,
-			"Arg[" + std::to_string(i) + "] raw: " + WideToUtf8(arg));
-	}
+    // Print the raw command line
+    g_logger->Log(ApplicationLogger::Level::DEBUG, "Raw command line: " + WideToUtf8(GetCommandLineW()));
+    for (int i = 0; i < argc; i++) {
+        std::wstring arg = argv[i];
+        g_logger->Log(ApplicationLogger::Level::DEBUG,
+            "Arg[" + std::to_string(i) + "] length: " +
+            std::to_string(arg.length()));
+        g_logger->Log(ApplicationLogger::Level::DEBUG,
+            "Arg[" + std::to_string(i) + "] raw: " + WideToUtf8(arg));
+    }
 
-	for (int i = 1; i < argc; i++) {
-		std::wstring arg = argv[i];
+    for (int i = 1; i < argc; i++) {
+        std::wstring arg = argv[i];
 
-		g_logger->Log(ApplicationLogger::Level::DEBUG,
-			"Processing argument: '" + WideToUtf8(arg) + "'");
+        g_logger->Log(ApplicationLogger::Level::DEBUG,
+            "Processing argument: '" + WideToUtf8(arg) + "'");
 
-		if (arg == L"--help" || arg == L"-h" || arg == L"-?" || arg == L"/?") {
-			g_logger->Log(ApplicationLogger::Level::INFO, "Help option detected");
-			options.showHelp = true;
-			return options;
-		}
-		else if (arg == L"--query" || arg == L"-q") {
-			options.queryMode = true;
-		}
-		else if ((arg == L"--target" || arg == L"-t") && i + 1 < argc) {
-			options.targetPath = argv[++i];
-		}
-		else if ((arg == L"--detect" || arg == L"-d") && i + 1 < argc) {
-			options.selectionMethod = CommandLineOptions::SelectionMethod::DETECT;
-		    options.detectMode = argv[++i]; 
+        if (arg == L"--help" || arg == L"-h" || arg == L"-?" || arg == L"/?") {
+            g_logger->Log(ApplicationLogger::Level::INFO, "Help option detected");
+            options.showHelp = true;
+            return options;
+        }
+        else if (arg == L"--query" || arg == L"-q") {
+            options.queryMode = true;
+        }
+        else if ((arg == L"--target" || arg == L"-t") && i + 1 < argc) {
+            options.targetPath = argv[++i];
+        }
+        else if ((arg == L"--mode" || arg == L"-m") && i + 1 < argc) {
+            std::wstring mode = argv[++i];
+            if (mode == L"p") {
+                options.affinityMode = CommandLineOptions::CoreAffinityMode::P_CORES_ONLY;
+            }
+            else if (mode == L"e") {
+                options.affinityMode = CommandLineOptions::CoreAffinityMode::E_CORES_ONLY;
+            }
+            else if (mode == L"lp") {
+                options.affinityMode = CommandLineOptions::CoreAffinityMode::LP_CORES_ONLY;
+            }
+            else if (mode == L"alle") {
+                options.affinityMode = CommandLineOptions::CoreAffinityMode::ALL_E_CORES;
+            }
+            else if (mode == L"all") {
+                options.affinityMode = CommandLineOptions::CoreAffinityMode::ALL_CORES;
+            }
+            else {
+                throw std::runtime_error("Invalid mode. Use: p, e, lp, alle, all");
+            }
+        }
+        else if ((arg == L"--pattern") && i + 1 < argc) {
+            options.affinityMode = CommandLineOptions::CoreAffinityMode::PATTERN;
+            std::wstring patternStr = argv[++i];
+            try {
+                options.pattern = std::stoul(patternStr, nullptr, 16);
+                if (options.pattern > 0xFF) {
+                    throw std::runtime_error("Pattern must be between 0x00 and 0xFF");
+                }
+            }
+            catch (...) {
+                throw std::runtime_error("Invalid pattern format. Use hex value (e.g., 0x40)");
+            }
+        }
+        else if (arg == L"--cores" && i + 1 < argc) {
+            options.affinityMode = CommandLineOptions::CoreAffinityMode::CUSTOM;
+            std::wstring coreList = argv[++i];
+            std::wstringstream ss(coreList);
+            std::wstring coreNum;
 
-			if (options.detectMode != L"P" &&
-				options.detectMode != L"E" &&
-				options.detectMode != L"CUSTOM") {
-				throw std::runtime_error("Invalid detection mode. Use P, E, or CUSTOM");
-			}
-		}
-		else if ((arg == L"--cpuid" || arg == L"-c") && i + 1 < argc) {
-			if (options.selectionMethod != CommandLineOptions::SelectionMethod::DETECT) {
-				throw std::runtime_error("--cpuid can only be used with --detect CUSTOM");
-			}
-			try {
-				options.cpuidValue = std::stoul(argv[++i], nullptr, 16);
-			}
-			catch (...) {
-				throw std::runtime_error("Invalid CPUID value");
-			}
-		}
-		else if ((arg == L"--cores") && i + 1 < argc) {
-			if (options.selectionMethod == CommandLineOptions::SelectionMethod::DETECT) {
-				throw std::runtime_error("Cannot use both --detect and --cores");
-			}
-			options.selectionMethod = CommandLineOptions::SelectionMethod::DIRECT;
+            while (std::getline(ss, coreNum, L',')) {
+                try {
+                    options.cores.push_back(std::stoi(coreNum));
+                }
+                catch (...) {
+                    throw std::runtime_error("Invalid core number in list");
+                }
+            }
 
-			// Parse comma-separated list of core numbers
-			std::wstring coreList = argv[++i];
-			std::wstringstream ss(coreList);
-			std::wstring coreNum;
+            // Validate core numbers
+            for (int core : options.cores) {
+                if (core < 0) {
+                    throw std::runtime_error("Core numbers must be non-negative");
+                }
+            }
+        }
+        else if (arg == L"--invert" || arg == L"-i") {
+            options.invertSelection = true;
+        }
+        else if (arg == L"--log" || arg == L"-l") {
+            options.enableLogging = true;
+        }
+        else if (arg == L"--logpath" && i + 1 < argc) {
+            options.logPath = argv[++i];
+        }
+        else {
+            throw std::runtime_error("Unknown option: " + WideToUtf8(arg));
+        }
+    }
 
-			while (std::getline(ss, coreNum, L',')) {
-				try {
-					options.cores.push_back(std::stoi(coreNum));
-				}
-				catch (...) {
-					throw std::runtime_error("Invalid core number in list");
-				}
-			}
+    // Comprehensive validation
+    try {
+        bool isQueryOrHelp = options.queryMode || options.showHelp;
 
-			// Validate core numbers
-			for (int core : options.cores) {
-				if (core < 0) {
-					throw std::runtime_error("Core numbers must be non-negative");
-				}
-			}
-		}
-		else if (arg == L"--invert" || arg == L"-i") {
-			options.invertSelection = true;
-		}
-		else if (arg == L"--log" || arg == L"-l") {
-			options.enableLogging = true;
-		}
-		else if (arg == L"--logpath" && i + 1 < argc) {
-			options.logPath = argv[++i];
-		}
-		else {
-			throw std::runtime_error("Unknown option: " + WideToUtf8(arg));
-		}
-	}
+        // Basic requirements
+        if (!isQueryOrHelp && options.targetPath.empty()) {
+            throw std::runtime_error("Target path is required for process launching");
+        }
 
-	// Comprehensive validation
-	try {
-		bool isQueryOrHelp = options.queryMode || options.showHelp;
+        // Target path existence
+        if (!isQueryOrHelp) {
+            if (GetFileAttributesW(options.targetPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
+                throw std::runtime_error("Target executable not found: " +
+                    WideToUtf8(options.targetPath));
+            }
+            g_logger->Log(ApplicationLogger::Level::INFO, "Target executable found: " +
+                WideToUtf8(options.targetPath));
+        }
 
-		// Basic requirements
-		if (!isQueryOrHelp && options.targetPath.empty()) {
-			throw std::runtime_error("Target path is required for process launching");
-		}
+        // System limits for cores
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        g_logger->Log(ApplicationLogger::Level::INFO, "System has " +
+            std::to_string(sysInfo.dwNumberOfProcessors) + " processors");
 
-		if (!isQueryOrHelp && options.selectionMethod == CommandLineOptions::SelectionMethod::NONE) {
-			throw std::runtime_error("Either --detect or --cores must be specified");
-		}
+        if (options.affinityMode == CommandLineOptions::CoreAffinityMode::CUSTOM) {
+            // Check for duplicate cores
+            std::set<int> uniqueCores(options.cores.begin(), options.cores.end());
+            if (uniqueCores.size() != options.cores.size()) {
+                throw std::runtime_error("Duplicate core numbers in --cores list");
+            }
 
-		// Target path existence
-		if (!isQueryOrHelp) {
-			if (GetFileAttributesW(options.targetPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
-				throw std::runtime_error("Target executable not found: " +
-					WideToUtf8(options.targetPath));
-			}
-			g_logger->Log(ApplicationLogger::Level::INFO, "Target executable found: " +
-				WideToUtf8(options.targetPath));
-		}
+            // Validate core numbers
+            for (int core : options.cores) {
+                if (core >= static_cast<int>(sysInfo.dwNumberOfProcessors)) {
+                    throw std::runtime_error("Core number " + std::to_string(core) +
+                        " exceeds system limit of " +
+                        std::to_string(sysInfo.dwNumberOfProcessors - 1));
+                }
+            }
 
-		// System limits for cores
-		SYSTEM_INFO sysInfo;
-		GetSystemInfo(&sysInfo);
-		g_logger->Log(ApplicationLogger::Level::INFO, "System has " +
-			std::to_string(sysInfo.dwNumberOfProcessors) + " processors");
+            std::string coreList;
+            for (int core : options.cores) {
+                if (!coreList.empty()) coreList += ",";
+                coreList += std::to_string(core);
+            }
+            g_logger->Log(ApplicationLogger::Level::INFO, "Valid core list specified: " + coreList);
+        }
 
-		if (options.selectionMethod == CommandLineOptions::SelectionMethod::DIRECT) {
-			// Check for duplicate cores
-			std::set<int> uniqueCores(options.cores.begin(), options.cores.end());
-			if (uniqueCores.size() != options.cores.size()) {
-				throw std::runtime_error("Duplicate core numbers in --cores list");
-			}
+        // Pattern validation and warning
+        if (options.affinityMode == CommandLineOptions::CoreAffinityMode::PATTERN) {
+            g_logger->Log(ApplicationLogger::Level::WARNING, 
+                "Using custom pattern detection (0x" + 
+                std::format("{:02X}", options.pattern) + 
+                "). This is an experimental feature.");
+        }
 
-			// Validate core numbers
-			for (int core : options.cores) {
-				if (core >= static_cast<int>(sysInfo.dwNumberOfProcessors)) {
-					throw std::runtime_error("Core number " + std::to_string(core) +
-						" exceeds system limit of " +
-						std::to_string(sysInfo.dwNumberOfProcessors - 1));
-				}
-			}
+        // Log path validation
+        if (options.enableLogging && options.logPath.empty()) {
+            throw std::runtime_error("Log path must be specified when logging is enabled");
+        }
 
-			std::string coreList;
-			for (int core : options.cores) {
-				if (!coreList.empty()) coreList += ",";
-				coreList += std::to_string(core);
-			}
-			g_logger->Log(ApplicationLogger::Level::INFO, "Valid core list specified: " + coreList);
-		}
+        // Mutually exclusive options
+        if (options.queryMode && !options.targetPath.empty()) {
+            throw std::runtime_error("--query cannot be used with --target");
+        }
 
-		// CPUID validation
-		if (options.detectMode == L"CUSTOM") {
-			if (options.cpuidValue == 0) {
-				throw std::runtime_error("CPUID value is required for CUSTOM detection mode");
-			}
-			if (options.cpuidValue > 0xFF) {
-				throw std::runtime_error("CPUID value must be between 0x00 and 0xFF");
-			}
-			g_logger->Log(ApplicationLogger::Level::INFO, "Custom CPUID value: 0x" +
-				std::format("{:02X}", options.cpuidValue));
-		}
+        g_logger->Log(ApplicationLogger::Level::INFO, "Command line validation completed successfully");
+    }
+    catch (const std::exception& e) {
+        g_logger->Log(ApplicationLogger::Level::ERR, "Validation failed: " + std::string(e.what()));
+        throw; // Re-throw for main() to handle
+    }
 
-		// Log path validation
-		if (options.enableLogging && options.logPath.empty()) {
-			throw std::runtime_error("Log path must be specified when logging is enabled");
-		}
-
-		// Mutually exclusive options
-		if (options.queryMode && !options.targetPath.empty()) {
-			throw std::runtime_error("--query cannot be used with --target");
-		}
-
-		g_logger->Log(ApplicationLogger::Level::INFO, "Command line validation completed successfully");
-	}
-	catch (const std::exception& e) {
-		g_logger->Log(ApplicationLogger::Level::ERR, "Validation failed: " + std::string(e.what()));
-		throw; // Re-throw for main() to handle
-	}
-
-	return options;
+    return options;
 }
 
 void ShowHelp() {
-	std::wcout << L"Core Aware Process Launcher (CAPL)\n"
-		<< L"Usage: capl.exe [options]\n\n"
-		<< L"Core Selection (use either detection or direct specification):\n"
-		<< L"  --detect, -d <mode>    Detection mode:\n"
-		<< L"                         P     - P-cores (Performance)\n"
-		<< L"                         E     - E-cores (Efficiency)\n"
-		<< L"                         CUSTOM - Custom detection\n"
-		<< L"  --cpuid, -c <value>    Custom CPUID value (hex) for CUSTOM mode\n"
-		<< L"  --cores <list>         Direct core specification (comma-separated)\n"
-		<< L"  --invert, -i           Invert core selection\n\n"
-		<< L"Process Control:\n"
-		<< L"  --target, -t <path>    Target executable path\n\n"
-		<< L"Utility Options:\n"
-		<< L"  --query, -q            Show system information only\n"
-		<< L"  --log, -l              Enable logging (disabled by default)\n"
-		<< L"  --logpath <path>       Specify log file path (default: capl.log)\n"
-		<< L"  --help, -h, -?, /?     Show this help\n\n"
-		<< L"Examples:\n"
-		<< L"  capl.exe --target \"program.exe\" --detect P\n"
-		<< L"  capl.exe --target \"program.exe\" --cores 0,2,4,6\n"
-		<< L"  capl.exe --detect CUSTOM --cpuid 40 --target \"program.exe\"\n"
-		<< L"  capl.exe --query\n\n"
-		<< L"Notes:\n"
-		<< L"  - Either --detect or --cores must be specified for launching\n"
-		<< L"  - --cpuid is required when using --detect CUSTOM\n"
-		<< L"  - Core numbers must be non-negative and within system limits\n"
-		<< std::endl;
+    std::wcout << L"Core Aware Process Launcher (CAPL)\n"
+        << L"Usage: capl.exe [options]\n\n"
+        << L"Core Affinity Modes:\n"
+        << L"  --mode, -m <mode>      Predefined modes:\n"
+        << L"                         p     - P-cores only (0x40)\n"
+        << L"                         e     - E-cores only (0x20)\n"
+        << L"                         lp    - LP E-cores only (0x30)\n"
+        << L"                         alle  - All E-cores (E + LP)\n"
+        << L"                         all   - Lock to all cores\n"
+        << L"  --cores <list>         Custom core selection (comma-separated)\n"
+        << L"  --pattern <hex>        Custom CPUID pattern detection (e.g., 0x40)\n"
+        << L"                         Advanced: Use with caution\n"
+        << L"  --invert, -i           Invert core selection\n\n"
+        << L"Process Control:\n"
+        << L"  --target, -t <path>    Target executable path\n\n"
+        << L"Utility Options:\n"
+        << L"  --query, -q            Show system information only\n"
+        << L"  --log, -l              Enable logging (disabled by default)\n"
+        << L"  --logpath <path>       Specify log file path (default: capl.log)\n"
+        << L"  --help, -h, -?, /?     Show this help\n\n"
+        << L"Examples:\n"
+        << L"  capl.exe --target \"program.exe\" --mode p\n"
+        << L"  capl.exe --target \"program.exe\" --mode lp\n"
+        << L"  capl.exe --target \"program.exe\" --mode alle\n"
+        << L"  capl.exe --target \"program.exe\" --cores 0,2,4\n"
+        << L"  capl.exe --target \"program.exe\" --pattern 0x40\n"
+        << L"  capl.exe --query\n\n"
+        << L"Notes:\n"
+        << L"  - Either --mode or --cores must be specified for launching\n"
+        << L"  - Core numbers must be non-negative and within system limits\n"
+        << L"  - --mode all explicitly locks process to all cores, preventing\n"
+        << L"    Windows from dynamically restricting core usage\n\n"
+        << L"Pattern Detection Notes:\n"
+        << L"  - Known patterns: P-cores=0x40, E-cores=0x20, LP E-cores=0x30\n"
+        << L"  - Custom patterns are experimental and may not work on all CPUs\n"
+        << L"  - Use --query first to understand your CPU's configuration\n"
+        << std::endl;
 }

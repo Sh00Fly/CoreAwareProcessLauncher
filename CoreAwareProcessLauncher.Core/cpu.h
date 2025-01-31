@@ -1,3 +1,4 @@
+//cpu.h
 #pragma once
 #include <windows.h>
 #include <vector>
@@ -6,25 +7,24 @@
 
 class CpuInfo {
 public:
-    // Get mask for specific core types using CPUID
+    struct CpuCapabilities {
+        bool isHybrid;
+        bool supportsLeaf1A;
+        int totalCores;
+        std::wstring brandString;
+        DWORD_PTR pCoreMask;
+        DWORD_PTR eCoreMask;
+    };
+
     static DWORD_PTR GetCoreMask(uint32_t cpuidValue);
-    
-    // Get mask for P-cores (wrapper for common case)
-    static DWORD_PTR GetPCoreMask() {
-        return GetCoreMask(0x40); // P-core identifier
-    }
-    
-    // Get mask for E-cores (if needed in future)
-    static DWORD_PTR GetECoreMask() {
-        return GetCoreMask(0x20); // E-core identifier (verify value)
-    }
-    
-    // Convert core numbers to mask
+    static DWORD_PTR GetPCoreMask() { return GetCoreMask(0x40); }
+    static DWORD_PTR GetECoreMask() { return GetCoreMask(0x20); }
     static DWORD_PTR CoreListToMask(const std::vector<int>& cores);
-    
-    // Get system CPU information for query mode
-    static std::wstring QuerySystemInfo();  
+    static std::wstring QuerySystemInfo();
+    static CpuCapabilities GetCapabilities();
+    static std::wstring GetDetailedInfo();
 
 private:
     static void ExecuteCpuid(int cpuInfo[4], int leaf, int subleaf);
+    static bool CheckCpuidSupport(int leaf);
 };

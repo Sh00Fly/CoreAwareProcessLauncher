@@ -1,31 +1,39 @@
+//process.cpp
 #include "pch.h"
 #include "process.h"
 #include "logger.h"
+#include "utilities.h" 
 #include <format>
 
 bool ProcessManager::LaunchProcess(
-    const std::wstring& path, 
+    const std::wstring& path,
+    const std::vector<std::wstring>& args,
+    const std::wstring& workingDir,
     DWORD_PTR affinityMask) {
     
     STARTUPINFOW si = { sizeof(STARTUPINFOW) };
     PROCESS_INFORMATION pi;
     
     g_logger->Log(ApplicationLogger::Level::INFO, 
-        "Launching process with affinity mask: 0x" + 
+        std::string("Launching process with affinity mask: 0x") + 
         std::format("{:X}", affinityMask));
     
+    std::wstring cmdLine = BuildCommandLine(path, args);
+    g_logger->Log(ApplicationLogger::Level::DEBUG, 
+        std::string("Command line: ") + WideToUtf8(cmdLine));    
+
     // Create process suspended
     if (!CreateProcessW(
-        path.c_str(),    // Application name
-        NULL,            // Command line
-        NULL,            // Process attributes
-        NULL,            // Thread attributes
-        FALSE,           // Inherit handles
-        CREATE_SUSPENDED,// Creation flags
-        NULL,            // Environment
-        NULL,            // Current directory
-        &si,             // Startup info
-        &pi              // Process information
+        NULL,                // Application name (NULL when using command line)
+        cmdLine.data(),      // Command line
+        NULL,               // Process attributes
+        NULL,               // Thread attributes
+        TRUE,              // Inherit handles
+        CREATE_SUSPENDED,   // Creation flags
+        NULL,               // Environment
+        workingDir.empty() ? NULL : workingDir.c_str(), // Working directory
+        &si,                // Startup info
+        &pi                 // Process information
     )) {
         LogWin32Error("CreateProcess failed");
         return false;
@@ -41,14 +49,52 @@ bool ProcessManager::LaunchProcess(
     }
     
     // Resume the process
-    ResumeThread(pi.hThread);
+    if (ResumeThread(pi.hThread) == -1) {        // NEW: Error check for ResumeThread
+        LogWin32Error("ResumeThread failed");
+        TerminateProcess(pi.hProcess, 1);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return false;
+    }
     
+    // After process is launched and running, wait for it to complete
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    // Force console refresh
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(hConsole, &csbi);
+    SetConsoleCursorPosition(hConsole, csbi.dwCursorPosition);
+
     // Clean up handles
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
-    
+
     g_logger->Log(ApplicationLogger::Level::INFO, "Process launched successfully");
     return true;
+}
+
+std::wstring ProcessManager::BuildCommandLine(
+    const std::wstring& path,
+    const std::vector<std::wstring>& args) {
+    
+    std::wstring cmdLine;
+    
+    // Quote the program path
+    cmdLine = L"\"" + path + L"\"";
+    
+    // Add arguments
+    for (const auto& arg : args) {
+        cmdLine += L" ";
+        // Quote arguments containing spaces
+        if (arg.find(L' ') != std::wstring::npos) {
+            cmdLine += L"\"" + arg + L"\"";
+        } else {
+            cmdLine += arg;
+        }
+    }
+    
+    return cmdLine;
 }
 
 void ProcessManager::LogWin32Error(const std::string& context) {

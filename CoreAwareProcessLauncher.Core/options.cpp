@@ -2,24 +2,11 @@
 #include "pch.h"
 #include "options.h"
 #include "logger.h"
+#include "utilities.h" 
 #include <sstream>
 #include <format>
 #include <iostream>
 
-// Helper function to convert wide string to narrow string
-std::string WideToUtf8(const std::wstring& wide) {
-    if (wide.empty()) return std::string();
-
-    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
-        static_cast<int>(wide.length()), nullptr, 0, nullptr, nullptr);
-
-    std::string utf8(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
-        static_cast<int>(wide.length()),
-        &utf8[0], size_needed, nullptr, nullptr);
-
-    return utf8;
-}
 
 CommandLineOptions::CommandLineOptions() :
     pattern(0),
@@ -31,8 +18,10 @@ CommandLineOptions::CommandLineOptions() :
 
 CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
     CommandLineOptions options;
+    bool foundDelimiter = false;
 
-    g_logger->Log(ApplicationLogger::Level::INFO, "Starting command line parsing with " + std::to_string(argc) + " arguments");
+    g_logger->Log(ApplicationLogger::Level::INFO, 
+        "Starting command line parsing with " + std::to_string(argc) + " arguments");
 
     if (argc == 1) {
         options.showHelp = true;
@@ -56,6 +45,18 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
         g_logger->Log(ApplicationLogger::Level::DEBUG,
             "Processing argument: '" + WideToUtf8(arg) + "'");
 
+        if (arg == L"--") {
+            foundDelimiter = true;
+            // Collect everything after -- as target path and args
+            if (i + 1 < argc) {
+                options.targetPath = argv[i + 1];
+                for (int j = i + 2; j < argc; j++) {
+                    options.targetArgs.push_back(argv[j]);
+                }
+            }
+            break;  // Stop processing arguments after --
+        }
+
         if (arg == L"--help" || arg == L"-h" || arg == L"-?" || arg == L"/?") {
             g_logger->Log(ApplicationLogger::Level::INFO, "Help option detected");
             options.showHelp = true;
@@ -64,8 +65,8 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
         else if (arg == L"--query" || arg == L"-q") {
             options.queryMode = true;
         }
-        else if ((arg == L"--target" || arg == L"-t") && i + 1 < argc) {
-            options.targetPath = argv[++i];
+        else if ((arg == L"--dir" || arg == L"-d") && i + 1 < argc) {
+            options.targetWorkingDir = argv[++i];
         }
         else if ((arg == L"--mode" || arg == L"-m") && i + 1 < argc) {
             std::wstring mode = argv[++i];
@@ -142,10 +143,24 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
         bool isQueryOrHelp = options.queryMode || options.showHelp;
 
         // Basic requirements
+        if (!isQueryOrHelp && !foundDelimiter) {
+            throw std::runtime_error("Program command line must be specified after --");
+        }
+        // Target validation message
         if (!isQueryOrHelp && options.targetPath.empty()) {
-            throw std::runtime_error("Target path is required for process launching");
+            throw std::runtime_error("Target program path must be specified after --");
         }
 
+        // Working directory validation
+        if (!options.targetWorkingDir.empty()) {
+            DWORD attrs = GetFileAttributesW(options.targetWorkingDir.c_str());
+            if (attrs == INVALID_FILE_ATTRIBUTES || !(attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+                throw std::runtime_error("Invalid working directory: " +
+                    WideToUtf8(options.targetWorkingDir));
+            }
+            g_logger->Log(ApplicationLogger::Level::INFO,
+                "Working directory validated: " + WideToUtf8(options.targetWorkingDir));
+        }
         // Target path existence
         if (!isQueryOrHelp) {
             if (GetFileAttributesW(options.targetPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
@@ -215,8 +230,9 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 }
 
 void ShowHelp() {
-    std::wcout << L"Core Aware Process Launcher (CAPL)\n"
-        << L"Usage: capl.exe [options]\n\n"
+    std::wcout << L"\nCore Aware Process Launcher (CAPL)\n"
+        // MODIFIED: Updated usage line to show new syntax
+        << L"Usage: capl.exe [options] -- <program> [program arguments]\n\n"
         << L"Core Affinity Modes:\n"
         << L"  --mode, -m <mode>      Predefined modes:\n"
         << L"                         p     - P-cores only (0x40)\n"
@@ -229,18 +245,19 @@ void ShowHelp() {
         << L"                         Advanced: Use with caution\n"
         << L"  --invert, -i           Invert core selection\n\n"
         << L"Process Control:\n"
-        << L"  --target, -t <path>    Target executable path\n\n"
+        << L"  --dir, -d <path>       Working directory for target process\n"
+        << L"  -- <program> [args]     Program to launch with its arguments\n\n"
         << L"Utility Options:\n"
         << L"  --query, -q            Show system information only\n"
         << L"  --log, -l              Enable logging (disabled by default)\n"
         << L"  --logpath <path>       Specify log file path (default: capl.log)\n"
         << L"  --help, -h, -?, /?     Show this help\n\n"
         << L"Examples:\n"
-        << L"  capl.exe --target \"program.exe\" --mode p\n"
-        << L"  capl.exe --target \"program.exe\" --mode lp\n"
-        << L"  capl.exe --target \"program.exe\" --mode alle\n"
-        << L"  capl.exe --target \"program.exe\" --cores 0,2,4\n"
-        << L"  capl.exe --target \"program.exe\" --pattern 0x40\n"
+        << L"  capl.exe --mode p -- notepad.exe \"file.txt\"\n"
+        << L"  capl.exe --mode lp --dir \"C:\\Work\" -- program.exe -arg1 -arg2\n"
+        << L"  capl.exe --mode alle -- cmd.exe /c \"batch.cmd\"\n"
+        << L"  capl.exe --cores 0,2,4 -- program.exe\n"
+        << L"  capl.exe --pattern 0x40 -- program.exe\n"
         << L"  capl.exe --query\n\n"
         << L"Notes:\n"
         << L"  - Either --mode or --cores must be specified for launching\n"
@@ -250,6 +267,7 @@ void ShowHelp() {
         << L"Pattern Detection Notes:\n"
         << L"  - Known patterns: P-cores=0x40, E-cores=0x20, LP E-cores=0x30\n"
         << L"  - Custom patterns are experimental and may not work on all CPUs\n"
-        << L"  - Use --query first to understand your CPU's configuration\n"
-        << std::endl;
+        << L"  - Use --query first to understand your CPU's configuration\n\n"
+        //<< std::endl;
+		<< std::endl << std::flush;  // Add explicit flush
 }

@@ -133,6 +133,7 @@ std::wstring CpuInfo::QuerySystemInfo() {
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo);
     
+    ss << L"\n";  // Start with newline
     ss << L"System CPU Information:\n"
        << L"Processor: " << caps.brandString << L"\n"
        << L"Number of processors: " << sysInfo.dwNumberOfProcessors << L"\n"
@@ -198,5 +199,7 @@ std::wstring CpuInfo::QuerySystemInfo() {
         ss << L"\n";
     }
     
+	ss << L"\n";  // End with newline
+	ss << L"\n";  // End with newline
     return ss.str();
 }

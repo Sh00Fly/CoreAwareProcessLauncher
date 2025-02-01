@@ -8,6 +8,8 @@
 
 struct CommandLineOptions {
     std::wstring targetPath;
+    std::vector<std::wstring> targetArgs;
+    std::wstring targetWorkingDir;
     
     enum class CoreAffinityMode {
         P_CORES_ONLY,     // Only Performance cores

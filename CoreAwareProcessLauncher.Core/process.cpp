@@ -18,15 +18,43 @@ bool ProcessManager::LaunchProcess(
 
     // Resolve full path
     WCHAR fullPath[MAX_PATH];
-    if (!SearchPathW(NULL, path.c_str(), L".exe", MAX_PATH, fullPath, NULL)) {
+    DWORD searchResult = SearchPathW(
+        NULL,           // Search in default paths
+        path.c_str(),   // File to find
+        L".exe",        // Default extension
+        MAX_PATH,       // Buffer size
+        fullPath,       // Output buffer
+        NULL           // File component pointer (not needed)
+    );
+
+    if (searchResult == 0) {
         DWORD error = GetLastError();
-        g_logger->Log(ApplicationLogger::Level::ERR,
-            std::format("SearchPath failed for '{}' with error: {}",
-                ConvertToNarrowString(path), error));
+        std::string errorMsg = "Failed to find executable '" + 
+            ConvertToNarrowString(path) + "' in PATH";
+        
+        // Add more specific error information
+        if (error == ERROR_FILE_NOT_FOUND) {
+            errorMsg += "\nThe file was not found in any of the search locations";
+        } else if (error == ERROR_PATH_NOT_FOUND) {
+            errorMsg += "\nOne or more PATH directories are invalid";
+        } else if (error == ERROR_ACCESS_DENIED) {
+            errorMsg += "\nAccess was denied while searching";
+        } else {
+            errorMsg += "\nError code: " + std::to_string(error);
+        }
+
+        // Log the PATH for debugging
+        WCHAR pathEnv[32768];  // Maximum environment variable size
+        if (GetEnvironmentVariableW(L"PATH", pathEnv, 32768)) {
+            g_logger->Log(ApplicationLogger::Level::DEBUG,
+                "Search PATH: " + ConvertToNarrowString(pathEnv));
+        }
+
+        g_logger->Log(ApplicationLogger::Level::ERR, errorMsg);
         LogWin32Error("SearchPath failed");
         return false;
-    }
-    
+    }    
+
     g_logger->Log(ApplicationLogger::Level::INFO, 
         "Resolved path: " + ConvertToNarrowString(fullPath));
     

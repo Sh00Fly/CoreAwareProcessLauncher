@@ -162,15 +162,6 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 			g_logger->Log(ApplicationLogger::Level::INFO,
 				"Working directory validated: " + ConvertToNarrowString(options.targetWorkingDir));
 		}
-		// Target path existence
-		if (!isQueryOrHelp) {
-			if (GetFileAttributesW(options.targetPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
-				throw std::runtime_error(ConvertToNarrowString(L"Target executable not found: " +
-					options.targetPath));
-			}
-			g_logger->Log(ApplicationLogger::Level::INFO, "Target executable found: " +
-				ConvertToNarrowString(options.targetPath));
-		}
 
 		// System limits for cores
 		SYSTEM_INFO sysInfo;
@@ -211,8 +202,10 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 		}
 
 		// Log path validation
-		if (options.enableLogging && options.logPath.empty()) {
-			throw std::runtime_error(ConvertToNarrowString(L"Log path must be specified when logging is enabled"));
+		if (options.enableLogging) {
+			if (options.logPath.empty()) {
+				options.logPath = Utilities::DEFAULT_LOG_PATH;
+			}
 		}
 
 		// Mutually exclusive options

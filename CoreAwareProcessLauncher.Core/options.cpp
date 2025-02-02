@@ -270,4 +270,9 @@ void ShowHelp() {
         << L"  - Use --query first to understand your CPU's configuration\n\n"
         //<< std::endl;
 		<< std::endl << std::flush;  // Add explicit flush
+}	if (g_messageHandler) {
+	if (g_messageHandler) {
+		g_messageHandler->ShowHelp(GetHelpText());
+	}
 }
+

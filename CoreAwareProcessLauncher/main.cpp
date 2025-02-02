@@ -1,6 +1,6 @@
 //main.cpp
 #include "options.h"
-#include "logger.h"
+#include "utilities.h"
 #include "cpu.h"
 #include "process.h"
 #include <iostream>
@@ -31,7 +31,7 @@ int WINAPI wWinMain(
 		LPWSTR* cmdArgv = CommandLineToArgvW(GetCommandLineW(), &cmdArgc);
 
 		if (cmdArgv == nullptr) {
-			throw std::runtime_error("Failed to parse command line");
+			throw std::runtime_error(Utilities::ConvertToNarrowString(L"Failed to parse command line"));
 		}
 
 		CommandLineOptions options = ParseCommandLine(cmdArgc, cmdArgv);
@@ -69,28 +69,28 @@ int WINAPI wWinMain(
 		switch (options.affinityMode) {
 		case CommandLineOptions::CoreAffinityMode::P_CORES_ONLY:
 			if (!caps.isHybrid || !caps.supportsLeaf1A) {
-				throw std::runtime_error("This CPU does not support hybrid architecture");
+				throw std::runtime_error(Utilities::ConvertToNarrowString(L"This CPU does not support hybrid architecture"));
 			}
 			coreMask = CpuInfo::GetPCoreMask();
 			break;
 
 		case CommandLineOptions::CoreAffinityMode::E_CORES_ONLY:
 			if (!caps.isHybrid || !caps.supportsLeaf1A) {
-				throw std::runtime_error("This CPU does not support hybrid architecture");
+				throw std::runtime_error(Utilities::ConvertToNarrowString(L"This CPU does not support hybrid architecture"));
 			}
 			coreMask = CpuInfo::GetECoreMask();
 			break;
 
 		case CommandLineOptions::CoreAffinityMode::LP_CORES_ONLY:
 			if (!caps.isHybrid || !caps.supportsLeaf1A) {
-				throw std::runtime_error("This CPU does not support hybrid architecture");
+				throw std::runtime_error(Utilities::ConvertToNarrowString(L"This CPU does not support hybrid architecture"));
 			}
 			coreMask = CpuInfo::GetLpECoreMask();
 			break;
 
 		case CommandLineOptions::CoreAffinityMode::ALL_E_CORES:
 			if (!caps.isHybrid || !caps.supportsLeaf1A) {
-				throw std::runtime_error("This CPU does not support hybrid architecture");
+				throw std::runtime_error(Utilities::ConvertToNarrowString(L"This CPU does not support hybrid architecture"));
 			}
 			coreMask = CpuInfo::GetECoreMask() | CpuInfo::GetLpECoreMask();
 			break;
@@ -109,13 +109,13 @@ int WINAPI wWinMain(
 
 		case CommandLineOptions::CoreAffinityMode::PATTERN:
 			if (!caps.supportsLeaf1A) {
-				throw std::runtime_error("This CPU does not support core type detection");
+				throw std::runtime_error(Utilities::ConvertToNarrowString(L"This CPU does not support core type detection"));
 			}
 			coreMask = CpuInfo::GetCoreMask(options.pattern);
 			break;
 
 		default:
-			throw std::runtime_error("Invalid affinity mode");
+			throw std::runtime_error(Utilities::ConvertToNarrowString(L"Invalid affinity mode"));
 		}
 
 		// Apply inversion if requested
@@ -130,7 +130,7 @@ int WINAPI wWinMain(
 
 		// Validate final mask
 		if (coreMask == 0) {
-			throw std::runtime_error("Resulting core mask is empty");
+			throw std::runtime_error(Utilities::ConvertToNarrowString(L"Resulting core mask is empty"));
 		}
 
 		// Launch the process
@@ -139,7 +139,7 @@ int WINAPI wWinMain(
 			options.targetArgs,
 			options.targetWorkingDir,
 			coreMask)) {
-			throw std::runtime_error("Failed to launch process");
+			throw std::runtime_error(Utilities::ConvertToNarrowString(L"Failed to launch process"));
 		}
 	}
 	catch (const std::exception& e) {

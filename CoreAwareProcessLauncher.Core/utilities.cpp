@@ -16,4 +16,6 @@ std::string WideToUtf8(const std::wstring& wide) {
         &utf8[0], size_needed, nullptr, nullptr);
 
     return utf8;
-}
+}// MessageHandler global instance
+// MessageHandler global instance
+std::unique_ptr<MessageHandler> g_messageHandler;

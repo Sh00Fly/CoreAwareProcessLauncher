@@ -2,7 +2,7 @@
 //CoreAwareProcessLauncher.Tests.cpp
 #include "pch.h"
 #include "options.h"
-#include "logger.h"
+#include "utilities.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

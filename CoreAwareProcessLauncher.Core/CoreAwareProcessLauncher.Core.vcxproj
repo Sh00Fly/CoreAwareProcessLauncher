@@ -145,15 +145,13 @@
   <ItemGroup>
     <ClInclude Include="cpu.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="logger.h" />
     <ClInclude Include="options.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="process.h" />
-    <ClInclude Include="Utilities.h" />
+    <ClInclude Include="utilities.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpu.cpp" />
-    <ClCompile Include="logger.cpp" />
     <ClCompile Include="options.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

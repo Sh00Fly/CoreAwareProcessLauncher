@@ -24,16 +24,13 @@
     <ClInclude Include="cpu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="logger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="options.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="process.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Utilities.h">
+    <ClInclude Include="utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -42,9 +39,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cpu.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="options.cpp">

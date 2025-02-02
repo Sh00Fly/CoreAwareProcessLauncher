@@ -1,15 +1,34 @@
 //process.cpp
 #include "pch.h"
 #include "process.h"
-#include "logger.h"
 #include "utilities.h" 
 #include <format>
+
+using Utilities::ConvertToNarrowString;
+using Utilities::ConvertToWideString;
 
 bool ProcessManager::LaunchProcess(
     const std::wstring& path,
     const std::vector<std::wstring>& args,
     const std::wstring& workingDir,
     DWORD_PTR affinityMask) {
+    
+    g_logger->Log(ApplicationLogger::Level::INFO, 
+        "Attempting to launch: " + ConvertToNarrowString(path));
+
+    // Resolve full path
+    WCHAR fullPath[MAX_PATH];
+    if (!SearchPathW(NULL, path.c_str(), L".exe", MAX_PATH, fullPath, NULL)) {
+        DWORD error = GetLastError();
+        g_logger->Log(ApplicationLogger::Level::ERR,
+            std::format("SearchPath failed for '{}' with error: {}",
+                ConvertToNarrowString(path), error));
+        LogWin32Error("SearchPath failed");
+        return false;
+    }
+    
+    g_logger->Log(ApplicationLogger::Level::INFO, 
+        "Resolved path: " + ConvertToNarrowString(fullPath));
     
     STARTUPINFOW si = { sizeof(STARTUPINFOW) };
     PROCESS_INFORMATION pi;
@@ -18,9 +37,9 @@ bool ProcessManager::LaunchProcess(
         std::string("Launching process with affinity mask: 0x") + 
         std::format("{:X}", affinityMask));
     
-    std::wstring cmdLine = BuildCommandLine(path, args);
+    std::wstring cmdLine = BuildCommandLine(fullPath, args);
     g_logger->Log(ApplicationLogger::Level::DEBUG, 
-        std::string("Command line: ") + WideToUtf8(cmdLine));    
+        std::string("Command line: ") + ConvertToNarrowString(cmdLine));    
 
     // Create process suspended
     if (!CreateProcessW(

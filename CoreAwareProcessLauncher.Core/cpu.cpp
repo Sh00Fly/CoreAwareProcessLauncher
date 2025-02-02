@@ -1,7 +1,7 @@
 //cpu.cpp
 #include "pch.h"
 #include "cpu.h"
-#include "logger.h"
+#include "utilities.h"
 #include <intrin.h>
 #include <sstream>
 #include <format>
@@ -196,10 +196,7 @@ std::wstring CpuInfo::QuerySystemInfo() {
         for (DWORD i = 0; i < sysInfo.dwNumberOfProcessors; i++) {
             ss << std::dec << i << L" ";
         }
-        ss << L"\n";
     }
     
-	ss << L"\n";  // End with newline
-	ss << L"\n";  // End with newline
     return ss.str();
 }

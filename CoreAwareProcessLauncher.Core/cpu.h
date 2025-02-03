@@ -17,10 +17,9 @@ public:
         DWORD_PTR lpECoreMask;
     };
 
-    static DWORD_PTR GetCoreMask(uint32_t cpuidValue);
-    static DWORD_PTR GetPCoreMask() { return GetCoreMask(0x40); }
-    static DWORD_PTR GetECoreMask() { return GetCoreMask(0x20); }
-    static DWORD_PTR GetLpECoreMask() { return GetCoreMask(0x30); }
+    static DWORD_PTR GetPCoreMask();
+    static DWORD_PTR GetECoreMask();
+    static DWORD_PTR GetLpECoreMask();
     static DWORD_PTR CoreListToMask(const std::vector<int>& cores);
     static std::wstring QuerySystemInfo();
     static CpuCapabilities GetCapabilities();

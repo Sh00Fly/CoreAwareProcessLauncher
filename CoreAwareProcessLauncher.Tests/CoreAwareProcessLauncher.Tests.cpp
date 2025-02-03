@@ -80,7 +80,6 @@ namespace CoreAwareProcessLauncherTests
             Assert::IsTrue(opts.targetPath.empty());
             Assert::AreEqual(static_cast<int>(CommandLineOptions::CoreAffinityMode::CUSTOM),
                 static_cast<int>(opts.affinityMode));
-            Assert::AreEqual(uint32_t(0), opts.pattern);
             Assert::IsTrue(opts.cores.empty());
             Assert::IsFalse(opts.invertSelection);
             Assert::IsFalse(opts.queryMode);
@@ -188,22 +187,6 @@ namespace CoreAwareProcessLauncherTests
             Assert::AreEqual(0, options.cores[0]);
             Assert::AreEqual(1, options.cores[1]);
             Assert::AreEqual(2, options.cores[2]);
-            CleanupArgs(argv);
-        }
-
-        TEST_METHOD(TestPatternDetection)
-        {
-            auto [argc, argv] = PrepareArgs({
-                L"--target", L"TestExecutable.exe",
-                L"--pattern", L"40"
-                });
-
-            auto options = ParseCommandLine(argc, argv);
-
-            Assert::AreEqual(L"TestExecutable.exe", options.targetPath.c_str());
-            Assert::AreEqual(static_cast<int>(CommandLineOptions::CoreAffinityMode::PATTERN),
-                static_cast<int>(options.affinityMode));
-            Assert::AreEqual(uint32_t(0x40), options.pattern);
             CleanupArgs(argv);
         }
 

@@ -107,13 +107,6 @@ int WINAPI wWinMain(
 			coreMask = CpuInfo::CoreListToMask(options.cores);
 			break;
 
-		case CommandLineOptions::CoreAffinityMode::PATTERN:
-			if (!caps.supportsLeaf1A) {
-				throw std::runtime_error(Utilities::ConvertToNarrowString(L"This CPU does not support core type detection"));
-			}
-			coreMask = CpuInfo::GetCoreMask(options.pattern);
-			break;
-
 		default:
 			throw std::runtime_error(Utilities::ConvertToNarrowString(L"Invalid affinity mode"));
 		}

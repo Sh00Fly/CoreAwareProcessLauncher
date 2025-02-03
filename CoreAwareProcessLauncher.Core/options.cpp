@@ -10,7 +10,6 @@ using Utilities::ConvertToNarrowString;
 using Utilities::ConvertToWideString;
 
 CommandLineOptions::CommandLineOptions() :
-	pattern(0),
 	invertSelection(false),
 	queryMode(false),
 	enableLogging(false),
@@ -88,19 +87,6 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 			}
 			else {
 				throw std::runtime_error(ConvertToNarrowString(L"Invalid mode. Use: p, e, lp, alle, all"));
-			}
-		}
-		else if ((arg == L"--pattern") && i + 1 < argc) {
-			options.affinityMode = CommandLineOptions::CoreAffinityMode::PATTERN;
-			std::wstring patternStr = argv[++i];
-			try {
-				options.pattern = std::stoul(patternStr, nullptr, 16);
-				if (options.pattern > 0xFF) {
-					throw std::runtime_error(ConvertToNarrowString(L"Pattern must be between 0x00 and 0xFF"));
-				}
-			}
-			catch (...) {
-				throw std::runtime_error(ConvertToNarrowString(L"Invalid pattern format. Use hex value (e.g., 0x40)"));
 			}
 		}
 		else if (arg == L"--cores" && i + 1 < argc) {
@@ -193,14 +179,6 @@ CommandLineOptions ParseCommandLine(int argc, wchar_t* argv[]) {
 			g_logger->Log(ApplicationLogger::Level::INFO, "Valid core list specified: " + coreList);
 		}
 
-		// Pattern validation and warning
-		if (options.affinityMode == CommandLineOptions::CoreAffinityMode::PATTERN) {
-			g_logger->Log(ApplicationLogger::Level::WARNING,
-				"Using custom pattern detection (0x" +
-				std::format("{:02X}", options.pattern) +
-				"). This is an experimental feature.");
-		}
-
 		// Log path validation
 		if (options.enableLogging) {
 			if (options.logPath.empty()) {
@@ -239,8 +217,6 @@ Core Affinity Modes:
                          alle  - All E-cores (E + LP)
                          all   - Lock to all cores
   --cores <list>         Custom core selection (comma-separated)
-  --pattern <hex>        Custom CPUID pattern detection (e.g., 0x40)
-                         Advanced: Use with caution
   --invert, -i           Invert core selection\n
 
 Process Control:
@@ -258,19 +234,13 @@ Examples:
   capl.exe --mode lp --dir \"C:\\Work\" -- program.exe -arg1 -arg2
   capl.exe --mode alle -- cmd.exe /c \"batch.cmd\"
   capl.exe --cores 0,2,4 -- program.exe
-  capl.exe --pattern 0x40 -- program.exe
   capl.exe --query\n
 
 Notes:
   - Either --mode or --cores must be specified for launching
   - Core numbers must be non-negative and within system limits
   - --mode all explicitly locks process to all cores, preventing
-    Windows from dynamically restricting core usage\n
-
-Pattern Detection Notes:
-  - Known patterns: P-cores=0x40, E-cores=0x20, LP E-cores=0x30
-  - Custom patterns are experimental and may not work on all CPUs
-  - Use --query first to understand your CPU's configuration)";
+    Windows from dynamically restricting core usage\n)";
 }
 
 void ShowHelp() {

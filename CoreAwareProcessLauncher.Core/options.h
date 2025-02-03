@@ -18,11 +18,9 @@ struct CommandLineOptions {
         ALL_E_CORES,      // Both E-cores and LP E-cores
         ALL_CORES,        // Lock to all cores
         CUSTOM,          // Custom core selection via --cores
-        PATTERN          // Custom CPUID pattern detection
     } affinityMode = CoreAffinityMode::CUSTOM;
     
     std::vector<int> cores;    // Used when mode is CUSTOM
-    uint32_t pattern;          // Used when mode is PATTERN
     bool invertSelection;
     bool queryMode;
     bool enableLogging;

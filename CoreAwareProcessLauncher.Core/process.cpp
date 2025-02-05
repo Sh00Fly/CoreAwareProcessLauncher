@@ -52,7 +52,7 @@ bool ProcessManager::LaunchProcess(
 
         g_logger->Log(ApplicationLogger::Level::ERR, errorMsg);
         LogWin32Error("SearchPath failed");
-        return false;
+		throw std::runtime_error(errorMsg);
     }    
 
     g_logger->Log(ApplicationLogger::Level::INFO, 

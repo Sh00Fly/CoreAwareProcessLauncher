@@ -4,46 +4,48 @@
 #include <iostream>
 
 namespace Utilities {
-std::string ConvertToNarrowString(const std::wstring &wide) {
-    if (wide.empty())
-        return std::string();
+    std::string ConvertToNarrowString(const std::wstring &wide) {
+        if (wide.empty())
+            return std::string();
 
-    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
-                                          static_cast<int>(wide.length()),
-                                          nullptr, 0, nullptr, nullptr);
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
+                                              static_cast<int>(wide.length()),
+                                              nullptr, 0, nullptr, nullptr);
 
-    std::string utf8(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
-                        static_cast<int>(wide.length()), &utf8[0], size_needed,
-                        nullptr, nullptr);
+        std::string utf8(size_needed, 0);
+        WideCharToMultiByte(CP_UTF8, 0, wide.c_str(),
+                            static_cast<int>(wide.length()), &utf8[0],
+                            size_needed, nullptr, nullptr);
 
-    return utf8;
-}
+        return utf8;
+    }
 
-std::wstring ConvertToWideString(const std::string &utf8) {
-    if (utf8.empty())
-        return std::wstring();
+    std::wstring ConvertToWideString(const std::string &utf8) {
+        if (utf8.empty())
+            return std::wstring();
 
-    int size_needed = MultiByteToWideChar(
-        CP_UTF8, 0, utf8.c_str(), static_cast<int>(utf8.length()), nullptr, 0);
+        int size_needed =
+            MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(),
+                                static_cast<int>(utf8.length()), nullptr, 0);
 
-    std::wstring wide(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(),
-                        static_cast<int>(utf8.length()), &wide[0], size_needed);
+        std::wstring wide(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(),
+                            static_cast<int>(utf8.length()), &wide[0],
+                            size_needed);
 
-    return wide;
-}
+        return wide;
+    }
 
-bool PathExists(const std::wstring &path) {
-    DWORD attrs = GetFileAttributesW(path.c_str());
-    return attrs != INVALID_FILE_ATTRIBUTES;
-}
+    bool PathExists(const std::wstring &path) {
+        DWORD attrs = GetFileAttributesW(path.c_str());
+        return attrs != INVALID_FILE_ATTRIBUTES;
+    }
 
-bool IsDirectory(const std::wstring &path) {
-    DWORD attrs = GetFileAttributesW(path.c_str());
-    return (attrs != INVALID_FILE_ATTRIBUTES) &&
-           (attrs & FILE_ATTRIBUTE_DIRECTORY);
-}
+    bool IsDirectory(const std::wstring &path) {
+        DWORD attrs = GetFileAttributesW(path.c_str());
+        return (attrs != INVALID_FILE_ATTRIBUTES) &&
+               (attrs & FILE_ATTRIBUTE_DIRECTORY);
+    }
 } // namespace Utilities
 
 // Logger

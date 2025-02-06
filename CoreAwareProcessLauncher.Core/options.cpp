@@ -370,11 +370,11 @@ Utility Options:
   --help, -h, -?, /?     Show this help
 
 Examples:
-  capl.exe --mode p -- notepad.exe \"file.txt\"
-  capl.exe --mode lp --dir \"C:\\Work\" -- program.exe -arg1 -arg2
-  capl.exe --mode alle -- cmd.exe /c \"batch.cmd\"
-  capl.exe --cores 0,2,4 -- program.exe
-  capl.exe --query
+  caplcli.exe --mode p -- notepad.exe \"file.txt\"
+  caplgui.exe --mode lp --dir \"C:\\Work\" -- program.exe -arg1 -arg2
+  caplcli.exe --mode alle -- cmd.exe /c \"batch.cmd\"
+  caplgui.exe --cores 0,2,4 -- program.exe
+  caplcli.exe --query
 
 Notes:
   - Either --mode or --cores must be specified for launching

@@ -85,7 +85,7 @@ caplcli.exe --query
 - Extend core detection patterns and verify on more CPU models.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE.txt) file for details.
 
 ## Contact
 For questions or support, please use the GitHub issue tracker.

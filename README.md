@@ -25,11 +25,40 @@ Core Aware Process Launcher is a Windows utility designed to launch processes wi
 - **Hardware:** CPU with hybrid architecture (for P/E/LP-core detection)
 
 ## Installation
-1. Clone the repository to your local machine.
-2. Open the solution in Visual Studio 2022.
-3. Select the desired configuration (Debug/Release).
-4. Build the solution.
+### Using Released Executables
 
+1. **Download the Executable**:
+   - Visit the [Releases](https://github.com/Sh00Fly/CoreAwareProcessLauncher/releases) page of this repository.
+   - Download the latest version of the executable suitable for your system.
+
+2. **Run the Executable**:
+   - Extract the downloaded files if necessary.
+   - Run the executable to start using Core Aware Process Launcher (CAPL).
+
+### Building from Source (Optional)
+
+If you prefer to build the utility from source, follow these steps:
+
+1. **Clone the Repository**:
+   - Open a terminal or command prompt.
+   - Run the following command to clone the repository:
+     ```bash
+     git clone https://github.com/Sh00Fly/CoreAwareProcessLauncher.git
+     ```
+
+2. **Open the Solution**:
+   - Navigate to the cloned repository directory.
+   - Open the solution file (`.sln`) in Visual Studio 2022.
+
+3. **Select Configuration**:
+   - Choose the desired configuration (Debug/Release) from the toolbar.
+
+4. **Build the Solution**:
+   - Click on **Build** > **Build Solution** to compile the project.
+
+---
+
+This structure clearly guides users to the easiest installation method first, while still providing detailed instructions for those who wish to build from source. Adjust the links and repository names as necessary to match your project's details.
 ## Usage
 ### Command-Line Interface
 #### Usage
